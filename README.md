@@ -260,4 +260,4 @@ training/             # training pipeline
 
 ## 👨‍💻 Author
 
-Made by Misbah · [Email](mailto:misbahullahsheriff@gmail.com) · [LinkedIn](https://www.linkedin.com/in/mohammed-misbahullah-sheriff/)
+Made by Muskan Suman · [Email](muskan.suman2907@gmail.com) · [LinkedIn](https://www.linkedin.com/in/muskansuman29/)
