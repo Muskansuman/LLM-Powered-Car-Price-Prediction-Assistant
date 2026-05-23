@@ -1,0 +1,48 @@
+# Render Blueprint: API + Redis (Key Value)
+# https://render.com/docs/blueprint-spec
+#
+# After first deploy, open the web service → Environment → add:
+#   GROQ_API_KEY   (required for /chat)
+#   API_KEY        (pick a strong secret; use the SAME value in Streamlit Cloud secrets)
+#
+# Optional: GOOGLE_API_KEY + set LLM_PROVIDER=gemini on the service.
+
+services:
+  - type: redis
+    name: car-price-redis
+    plan: free
+    maxmemoryPolicy: allkeys-lfu
+    ipAllowList: []
+
+  - type: web
+    name: fastapi-car-price-api
+    runtime: docker
+    plan: free
+    region: oregon
+    branch: main
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: MODEL_PATH
+        value: app/models/model.joblib
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: car-price-redis
+          property: connectionString
+      - key: LLM_PROVIDER
+        value: groq
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
+      - key: GEMINI_MODEL
+        value: gemini-2.0-flash
+      # Set these in the Render dashboard (Secrets) after blueprint sync:
+      - key: API_KEY
+        sync: false
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
