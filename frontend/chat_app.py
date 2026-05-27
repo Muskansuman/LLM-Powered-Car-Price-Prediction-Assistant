@@ -5,7 +5,6 @@ import time
 from datetime import datetime
 
 import httpx
-import pandas as pd
 import streamlit as st
 
 TIMEOUT = 60.0
@@ -309,8 +308,42 @@ def _render_depreciation_chart(price: float, year: int | None):
         factor = 1.0 - (len(years) - 1 - i) * 0.08
         values.append(max(price * factor * 0.85, price * 0.5))
     values[-1] = price
-    df = pd.DataFrame({"Year": [str(y) for y in years], "Est. value (₹)": values})
-    st.line_chart(df.set_index("Year"), height=180)
+
+    vmin, vmax = min(values), max(values)
+    span = vmax - vmin or 1.0
+    width, height = 320, 120
+    pad_x, pad_y = 8, 12
+    inner_w = width - pad_x * 2
+    inner_h = height - pad_y * 2
+    points = []
+    for i, val in enumerate(values):
+        x = pad_x + (i / max(len(values) - 1, 1)) * inner_w
+        y = pad_y + inner_h - ((val - vmin) / span) * inner_h
+        points.append(f"{x:.1f},{y:.1f}")
+    polyline = " ".join(points)
+    start_label = years[0]
+    end_label = years[-1]
+    end_value = f"₹{values[-1]:,.0f}"
+
+    st.markdown(
+        f"""<div style="margin-top:0.35rem;">
+        <svg viewBox="0 0 {width} {height}" width="100%" height="{height}" aria-hidden="true">
+          <defs>
+            <linearGradient id="depGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.35"/>
+              <stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <polygon points="{polyline} {width - pad_x},{height - pad_y} {pad_x},{height - pad_y}"
+                   fill="url(#depGrad)"/>
+          <polyline points="{polyline}" fill="none" stroke="#3b82f6" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div style="display:flex;justify-content:space-between;font-size:0.75rem;opacity:0.7;">
+          <span>{start_label}</span><span>{end_label} · {end_value}</span>
+        </div></div>""",
+        unsafe_allow_html=True,
+    )
 
 
 def _render_valuation_dashboard(meta: dict):
