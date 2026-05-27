@@ -112,6 +112,14 @@ div[data-testid="stSidebar"] {{
     border: 1px solid {border}; border-radius: 14px; padding: 1rem 1.25rem;
     font-size: 0.92rem; line-height: 1.6; color: {text};
 }}
+.section-title {{
+    font-size: 0.95rem; font-weight: 600; color: {text}; margin: 0 0 0.75rem 0;
+}}
+.profile-grid {{
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 0.75rem; margin-bottom: 0.85rem;
+}}
+.profile-item {{ font-size: 0.8rem; color: {muted}; }}
+.profile-item strong {{ display: block; color: {text}; font-size: 0.88rem; margin-top: 0.1rem; }}
 .glass-card, .hero, .insight-box {{
     animation: fadeUp 0.45s ease-out both;
 }}
@@ -273,9 +281,9 @@ def _vehicle_label(features: dict | None) -> str:
     return " ".join(p for p in parts if p).strip() or "Vehicle valuation"
 
 
-def _render_factors(features: dict | None):
+def _factors_html(features: dict | None) -> str:
     if not features:
-        return
+        return '<p class="metric-sub">No structured factors available yet.</p>'
     pills = []
     km = features.get("km_driven")
     if km is not None:
@@ -288,17 +296,41 @@ def _render_factors(features: dict | None):
     fuel = features.get("fuel")
     if fuel:
         pills.append((str(fuel), True))
+    transmission = features.get("transmission")
+    if transmission:
+        pills.append((str(transmission), True))
+    seller = features.get("seller_type")
+    if seller:
+        pills.append((f"{seller} sale", True))
     if not pills:
-        st.caption("No structured factors available yet.")
-        return
+        return '<p class="metric-sub">No structured factors available yet.</p>'
     html = ""
     for label, positive in pills:
         cls = "pos" if positive else "neu"
         html += f'<span class="factor-pill {cls}">{label}</span>'
-    st.markdown(html, unsafe_allow_html=True)
+    return html
 
 
-def _render_depreciation_chart(price: float, year: int | None):
+def _profile_html(features: dict) -> str:
+    def cell(label: str, value) -> str:
+        display = "—" if value is None or value == "" else value
+        if label == "Odometer" and isinstance(display, (int, float)):
+            display = f"{display:,.0f} km"
+        return f'<div class="profile-item">{label}<strong>{display}</strong></div>'
+
+    return (
+        '<div class="profile-grid">'
+        + cell("Make", features.get("company"))
+        + cell("Year", features.get("year"))
+        + cell("Odometer", features.get("km_driven"))
+        + cell("Owner", features.get("owner"))
+        + cell("Fuel", features.get("fuel"))
+        + cell("Transmission", features.get("transmission"))
+        + "</div>"
+    )
+
+
+def _depreciation_chart_html(price: float, year: int | None) -> str:
     base_year = year or datetime.now().year - 5
     years = list(range(base_year, datetime.now().year + 1))
     if len(years) < 2:
@@ -325,8 +357,7 @@ def _render_depreciation_chart(price: float, year: int | None):
     end_label = years[-1]
     end_value = f"₹{values[-1]:,.0f}"
 
-    st.markdown(
-        f"""<div style="margin-top:0.35rem;">
+    return f"""<div style="margin-top:0.35rem;">
         <svg viewBox="0 0 {width} {height}" width="100%" height="{height}" aria-hidden="true">
           <defs>
             <linearGradient id="depGrad" x1="0" y1="0" x2="0" y2="1">
@@ -341,9 +372,7 @@ def _render_depreciation_chart(price: float, year: int | None):
         </svg>
         <div style="display:flex;justify-content:space-between;font-size:0.75rem;opacity:0.7;">
           <span>{start_label}</span><span>{end_label} · {end_value}</span>
-        </div></div>""",
-        unsafe_allow_html=True,
-    )
+        </div></div>"""
 
 
 def _render_valuation_dashboard(meta: dict):
@@ -385,15 +414,23 @@ def _render_valuation_dashboard(meta: dict):
 
     left, right = st.columns([1.1, 1])
     with left:
-        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-        st.markdown("**Key Value Factors**")
-        _render_factors(features)
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown(
+            f"""<div class="glass-card">
+            <div class="section-title">Car Profile</div>
+            {_profile_html(features)}
+            <div class="section-title" style="margin-top:0.25rem;">Key Value Factors</div>
+            {_factors_html(features)}
+            </div>""",
+            unsafe_allow_html=True,
+        )
     with right:
-        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-        st.markdown("**Depreciation Trend**")
-        _render_depreciation_chart(float(price), features.get("year"))
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown(
+            f"""<div class="glass-card">
+            <div class="section-title">Depreciation Trend</div>
+            {_depreciation_chart_html(float(price), features.get("year"))}
+            </div>""",
+            unsafe_allow_html=True,
+        )
 
     st.markdown(
         f'<div class="insight-box"><strong>AI Insight</strong><br>{meta.get("reply", "")}</div>',
@@ -415,6 +452,8 @@ def _friendly_http_error(exc: httpx.HTTPStatusError) -> str:
     if body.startswith("<!") or "<html" in body[:200].lower():
         return f"Unexpected gateway error (HTTP {code}). Please try again in a moment."
     return f"Service error ({code}): {body[:300]}"
+
+
 def _call_chat(message: str, *, retries: int = 2) -> dict:
     url = f"{st.session_state.api_base_url}/chat"
     headers = {"api-key": st.session_state.api_key}
