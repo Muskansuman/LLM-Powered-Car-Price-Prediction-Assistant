@@ -30,6 +30,18 @@ Instrumentator().instrument(app).expose(app)
 register_exception_handlers(app)
 
 
+@app.on_event("startup")
+def _warmup():
+    """Load ML model at boot so first /chat prediction does not spike latency."""
+    try:
+        from app.services.model_service import _get_model
+
+        _get_model()
+        logging.getLogger(__name__).info("Model preloaded on startup")
+    except Exception as exc:
+        logging.getLogger(__name__).warning("Model preload skipped: %s", exc)
+
+
 @app.get("/health", tags=["Meta"])
 def health():
     return {"status": "ok"}
