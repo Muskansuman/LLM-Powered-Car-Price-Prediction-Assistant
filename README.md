@@ -1,11 +1,11 @@
 <div align="center">
 
-# AutoValuator AI — Conversational Car Price Predictor
+# AutoValuator AI — Car Price Predictor
 
 **Chat in plain English to get instant used-car valuations**  
 Powered by scikit-learn ML + Groq LLM + FastAPI + Redis + Streamlit
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Streamlit-FF4B4B?logo=streamlit)](https://car-price-chat.streamlit.app)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Streamlit-FF4B4B?logo=streamlit)](https://car-price-predictor-bot.streamlit.app)
 [![API Docs](https://img.shields.io/badge/API%20Docs-Swagger-85EA2D?logo=swagger)](https://fastapi-car-price-api-i09k.onrender.com/docs)
 [![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?logo=github)](https://github.com/Muskansuman/LLM-Powered-Car-Price-Prediction-Assistant)
 [![Health](https://img.shields.io/badge/API-Live-22c55e)](https://fastapi-car-price-api-i09k.onrender.com/health)
@@ -15,7 +15,7 @@ Powered by scikit-learn ML + Groq LLM + FastAPI + Redis + Streamlit
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)](https://www.docker.com/)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-**Try the chatbot:** [https://car-price-chat.streamlit.app](https://car-price-chat.streamlit.app)
+**Try the chatbot:** [https://car-price-predictor-bot.streamlit.app](https://car-price-predictor-bot.streamlit.app)
 
 </div>
 
@@ -25,7 +25,7 @@ Powered by scikit-learn ML + Groq LLM + FastAPI + Redis + Streamlit
 
 | Service | URL | Description |
 |---|---|---|
-| **Chatbot (Streamlit)** | [car-price-chat.streamlit.app](https://car-price-chat.streamlit.app) | Main UI — ask for car prices in natural language |
+| **Chatbot (Streamlit)** | [car-price-predictor-bot.streamlit.app](https://car-price-predictor-bot.streamlit.app) | Main UI — ask for car prices in natural language |
 | **API Docs (Swagger)** | [fastapi-car-price-api-i09k.onrender.com/docs](https://fastapi-car-price-api-i09k.onrender.com/docs) | Interactive REST API documentation |
 | **Health Check** | [fastapi-car-price-api-i09k.onrender.com/health](https://fastapi-car-price-api-i09k.onrender.com/health) | Backend status (`{"status":"ok"}`) |
 | **GitHub** | [github.com/Muskansuman/LLM-Powered-Car-Price-Prediction-Assistant](https://github.com/Muskansuman/LLM-Powered-Car-Price-Prediction-Assistant) | Source code |
@@ -34,27 +34,19 @@ Powered by scikit-learn ML + Groq LLM + FastAPI + Redis + Streamlit
 
 ---
 
-## Screenshots
+## Demo
 
-### Multi-turn chat conversation
+Try it live: [car-price-predictor-bot.streamlit.app](https://car-price-predictor-bot.streamlit.app)
 
-![AutoValuator AI — multi-turn chat demo](demo/demo1.png)
+### Chat conversation
 
-*User describes a 2018 Honda City in plain English → bot asks a follow-up → returns ML price + LLM explanation.*
+![Car Price Predictor — multi-turn chat demo](demo/demo1.png)
 
 ### Valuation dashboard
 
-![AutoValuator AI — valuation dashboard](demo/demo2.png)
+![Car Price Predictor — valuation dashboard](demo/demo2.png)
 
-*Structured output: estimated value, confidence score, car profile, key factors, depreciation trend, and AI insight.*
-
----
-
-## Chatbot Demo
-
-Open the live app and try these conversations, or click an example pill in the UI.
-
-### Example 1 — Full valuation (multi-turn)
+**Sample conversation:**
 
 ```
 You  →  2018 Honda City, diesel, 95,000 km, first owner, manual
@@ -66,31 +58,6 @@ You  →  dealer
 Bot  →  Your 2018 Honda City diesel is predicted to be worth around ₹6.04 lakhs.
          Higher km for its age and diesel fuel type influenced the estimate.
          Getting the car serviced and keeping documents ready can help at resale.
-         Note: engine specs were inferred as typical for this variant.
-```
-
-**Dashboard shown after prediction:** estimated value, confidence score, car profile, key factors, depreciation trend, and AI insight.
-
-### Example 2 — One-shot (all details upfront)
-
-```
-You  →  2015 Maruti Swift, petrol, 60,000 km, first owner, manual, selling privately
-
-Bot  →  Your 2015 Maruti Swift is worth approximately ₹3.5–4.0 lakh.
-         Low mileage and first-owner status work in your favour.
-         A recent service record could improve buyer confidence.
-```
-
-### Example 3 — Follow-up in the same session
-
-```
-You  →  2020 Hyundai Creta, diesel, 40,000 km, second owner, automatic
-
-Bot  →  [asks for missing seller type if needed, then returns price + explanation]
-
-You  →  What hurts the price most?
-
-Bot  →  [uses conversation memory to explain factors like ownership, km, fuel, etc.]
 ```
 
 ---
@@ -110,7 +77,7 @@ RandomForest ML model         ← predicts price from extracted features
 LLM (Groq)                    ← explains price in friendly natural language
     │
     ▼
-Streamlit UI (AutoValuator)   ← chat + valuation dashboard
+Streamlit UI (Car Price Predictor)   ← chat + valuation dashboard
 ```
 
 **Redis** stores conversation history per session so follow-up questions work without repeating car details.
@@ -132,8 +99,8 @@ Streamlit UI (AutoValuator)   ← chat + valuation dashboard
 
 ```
 ┌──────────────┐   text   ┌──────────────────┐   features  ┌────────────┐
-│  Streamlit   │────────► │  FastAPI /chat   │────────────►│  ML model  │
-│ AutoValuator │          │  extractor +     │             │ (sklearn)  │
+│ Car Price    │────────► │  FastAPI /chat   │────────────►│  ML model  │
+│  Predictor   │          │  extractor +     │             │ (sklearn)  │
 └──────────────┘          │  explainer       │             └────────────┘
                           └────────┬─────────┘                  │
                                    │                             ▼
@@ -236,7 +203,7 @@ app/
 ├── models/           # trained model.joblib
 └── services/         # inference
 frontend/
-└── chat_app.py       # AutoValuator AI Streamlit UI
+└── chat_app.py       # Car Price Predictor Streamlit UI
 training/             # model training pipeline
 data/                 # car-details.csv
 ```
@@ -263,7 +230,7 @@ base_url = "https://fastapi-car-price-api-i09k.onrender.com"
 api_key = "demo-key"
 ```
 
-4. Custom URL example: `car-price-chat` → `https://car-price-chat.streamlit.app`
+4. Custom URL example: `car-price-predictor-bot` → `https://car-price-predictor-bot.streamlit.app`
 
 ---
 
