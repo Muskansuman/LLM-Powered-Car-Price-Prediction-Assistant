@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import time
 from datetime import datetime
 
 import httpx
@@ -367,15 +368,39 @@ def _render_valuation_dashboard(meta: dict):
     )
 
 
-def _call_chat(message: str) -> dict:
-    resp = httpx.post(
-        f"{st.session_state.api_base_url}/chat",
-        headers={"api-key": st.session_state.api_key},
-        json={"message": message, "session_id": st.session_state.session_id},
-        timeout=TIMEOUT,
-    )
-    resp.raise_for_status()
-    return resp.json()
+def _friendly_http_error(exc: httpx.HTTPStatusError) -> str:
+    code = exc.response.status_code
+    if code in (502, 503, 504):
+        return (
+            f"The valuation service is temporarily unavailable (HTTP {code}). "
+            "This often happens on Render's free tier during cold starts — "
+            "wait a few seconds and send your message again."
+        )
+    if code == 401:
+        return "Authentication failed — check that `api_key` in secrets matches Render's `API_KEY`."
+    body = exc.response.text.strip()
+    if body.startswith("<!") or "<html" in body[:200].lower():
+        return f"Unexpected gateway error (HTTP {code}). Please try again in a moment."
+    return f"Service error ({code}): {body[:300]}"
+def _call_chat(message: str, *, retries: int = 2) -> dict:
+    url = f"{st.session_state.api_base_url}/chat"
+    headers = {"api-key": st.session_state.api_key}
+    payload = {"message": message, "session_id": st.session_state.session_id}
+    last_exc: httpx.HTTPStatusError | None = None
+
+    for attempt in range(retries + 1):
+        try:
+            resp = httpx.post(url, headers=headers, json=payload, timeout=TIMEOUT)
+            resp.raise_for_status()
+            return resp.json()
+        except httpx.HTTPStatusError as exc:
+            last_exc = exc
+            if exc.response.status_code not in (502, 503, 504) or attempt >= retries:
+                raise
+            time.sleep(2 * (attempt + 1))
+
+    assert last_exc is not None
+    raise last_exc
 
 
 def _process_prompt(prompt: str):
@@ -383,7 +408,7 @@ def _process_prompt(prompt: str):
     try:
         data = _call_chat(prompt)
     except httpx.HTTPStatusError as exc:
-        err = f"Service error ({exc.response.status_code}): {exc.response.text}"
+        err = _friendly_http_error(exc)
         st.session_state.messages.append({"role": "assistant", "content": err, "meta": None})
         return
     except Exception as exc:
